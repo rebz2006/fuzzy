@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fuzzy Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;700&display=swap">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#fffaf0; --card:#ffffff; --ink:#3b3354; --muted:#7a7194; --line:#ece4d3;
+  --c1:#ffd6e5; --c2:#cfe8ff; --c3:#cdf7d2; --c4:#fff2b3; --c5:#e2d6ff;
+  --path:#ffc2d9; --end:#bff0c5;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1e1b2e; --card:#2a2640; --ink:#f3efff; --muted:#b3abd0; --line:#3b3659;
+    --c1:#5a3350; --c2:#2f4660; --c3:#2f5a45; --c4:#5e5430; --c5:#473a70;
+    --path:#8a3d62; --end:#2f7050;
+    color-scheme:dark;
+  }
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,"Trebuchet MS",system-ui,sans-serif;font-size:1.05rem;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:34px 18px 56px}
+h1,h2,.pct{font-family:Fredoka,"Trebuchet MS",system-ui,sans-serif;font-weight:600}
+h1{font-size:clamp(2.4rem,8vw,4rem);line-height:1;margin:0 0 10px;text-align:center}
+.lede{text-align:center;color:var(--muted);max-width:52ch;margin:0 auto 26px}
+.card{background:var(--card);border:2px solid var(--ink);border-radius:20px;box-shadow:5px 5px 0 var(--ink)}
+
+.search{padding:18px;background:var(--c4);display:flex;flex-direction:column;gap:14px}
+.search input[type=text]{width:100%;font:inherit;font-size:1.6rem;font-family:Fredoka,sans-serif;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:999px;padding:12px 24px;text-align:center}
+input:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible,input[type=range]:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.thr{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap;font-weight:700}
+.thr input{width:min(260px,60vw);accent-color:var(--ink)}
+.thr output{background:var(--card);border:2px solid var(--ink);border-radius:999px;padding:0 12px}
+
+details{margin-top:16px;padding:14px 18px}
+summary{cursor:pointer;font-weight:700}
+textarea{width:100%;height:120px;margin-top:10px;font:inherit;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:10px 12px;resize:vertical}
+
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px;margin:30px 4px 10px}
+.chip{font:inherit;color:inherit;text-align:left;cursor:pointer;padding:14px 16px;border:2px solid var(--ink);border-radius:18px;box-shadow:4px 4px 0 var(--ink);transform:rotate(var(--r,0deg));transition:transform .15s}
+.chip:nth-child(5n+1){background:var(--c1);--r:-1.5deg}
+.chip:nth-child(5n+2){background:var(--c2);--r:1deg}
+.chip:nth-child(5n+3){background:var(--c3);--r:-.7deg}
+.chip:nth-child(5n+4){background:var(--c5);--r:1.5deg}
+.chip:nth-child(5n+5){background:var(--c4);--r:-1deg}
+.chip:hover{transform:rotate(0) translateY(-2px)}
+.chip[aria-pressed="true"]{transform:rotate(0) scale(1.05);box-shadow:6px 6px 0 var(--ink);outline:3px solid var(--ink);outline-offset:3px}
+.chip .w{display:block;font-family:Fredoka,sans-serif;font-size:1.35rem;font-weight:600;overflow-wrap:anywhere}
+.chip .pct{font-size:.95rem}
+.note{text-align:center;color:var(--muted);margin:14px 0 0}
+
+.how{margin-top:28px;padding:22px;background:var(--c2)}
+.how h2{font-size:1.5rem;margin:0}
+#sub{margin:2px 0 14px;font-weight:700}
+.scroll{overflow-x:auto;padding:4px}
+table{border-collapse:separate;border-spacing:4px;margin:0 auto}
+td,th{width:2.6rem;height:2.6rem;text-align:center;font-family:Fredoka,sans-serif;font-weight:500;border-radius:10px}
+th{font-size:1.15rem}
+td{background:var(--card);border:2px solid var(--line)}
+td.path{background:var(--path);border-color:var(--ink)}
+td.end{background:var(--end);border-color:var(--ink);font-weight:600}
+.legend{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-weight:700;font-size:.95rem}
+.sw{display:inline-block;width:1em;height:1em;border:2px solid var(--ink);border-radius:5px;vertical-align:-2px;margin-right:6px}
+.rule{margin-top:18px;padding:14px 16px;background:var(--card);border-radius:14px;font-size:.98rem}
+.rule b{font-family:Fredoka,sans-serif;font-weight:600}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Fuzzy Finder</h1>
+  <p class="lede">Type a word with a typo. We’ll find the closest matches by counting how many letter changes it takes to get there.</p>
+
+  <section class="card search" aria-label="Search">
+    <input id="q" type="text" value="helo" aria-label="Search word" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div class="thr">
+      <label for="t">Minimum match</label>
+      <input id="t" type="range" min="0" max="1" step="0.05" value="0.6">
+      <output id="tv">60%</output>
+    </div>
+  </section>
+
+  <div id="results" aria-live="polite"></div>
+
+  <section class="card how" aria-label="How the match was calculated">
+    <h2>How it was worked out</h2>
+    <div id="sub"></div>
+    <div class="scroll"><table id="tbl"></table></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--path)"></span>Cheapest path</span>
+      <span><span class="sw" style="background:var(--end)"></span>Final distance</span>
+    </div>
+    <div class="rule">
+      <b>The rule:</b> every cell takes the smallest of three moves: the cell above + 1 (delete), the cell to the left + 1 (insert), or the diagonal cell + 0 if the letters match and + 1 if they don’t.
+      <br><b>The score:</b> 1 − distance ÷ length of the longer word.
+    </div>
+  </section>
+
+  <details class="card">
+    <summary>Edit the word list</summary>
+    <textarea id="words" aria-label="Word list, one per line" spellcheck="false">apple
+banana
+orange
+grape
+pineapple
+mango
+cherry
+strawberry
+blueberry
+watermelon
+peach
+papaya
+lemon
+coconut
+hello
+girl
+world
+friend
+school
+house
+water
+happy
+music
+family
+computer
+keyboard
+window
+garden
+library
+teacher
+student
+mountain
+river
+morning</textarea>
+  </details>
+</main>
+
+<script>
+// ---- The algorithm (same logic as fuzzy.py) ----
+function buildTable(a, b) {
+  const t = [];
+  for (let i = 0; i <= a.length; i++) {
+    t.push(new Array(b.length + 1).fill(0));
+    t[i][0] = i;
+  }
+  for (let j = 0; j <= b.length; j++) t[0][j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      t[i][j] = Math.min(
+        t[i - 1][j] + 1,        // delete
+        t[i][j - 1] + 1,        // insert
+        t[i - 1][j - 1] + cost  // substitute or keep
+      );
+    }
+  }
+  return t;
+}
+
+function similarity(a, b) {
+  const t = buildTable(a, b);
+  const longest = Math.max(a.length, b.length);
+  return longest === 0 ? 1 : 1 - t[a.length][b.length] / longest;
+}
+
+// Walk back from the bottom-right cell to find which cells led to the answer
+function backtrace(t, a, b) {
+  let i = a.length, j = b.length;
+  const path = new Set([i + "," + j]);
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      if (t[i][j] === t[i - 1][j - 1] + cost) { i--; j--; }
+      else if (t[i][j] === t[i - 1][j] + 1) i--;
+      else j--;
+    } else if (i > 0) i--;
+    else j--;
+    path.add(i + "," + j);
+  }
+  return path;
+}
+
+// ---- The page ----
+const $ = id => document.getElementById(id);
+let selected = null;
+
+function getWords() {
+  return $("words").value.split("\n").map(w => w.trim().toLowerCase()).filter(Boolean);
+}
+
+function run() {
+  const q = $("q").value.trim().toLowerCase();
+  const min = parseFloat($("t").value);
+  $("tv").textContent = Math.round(min * 100) + "%";
+
+  const scored = getWords().map(w => ({ w, s: similarity(q, w) }));
+  const hits = q ? scored.filter(x => x.s >= min).sort((x, y) => y.s - x.s) : [];
+  if (!hits.some(h => h.w === selected)) selected = hits.length ? hits[0].w : null;
+
+  const box = $("results");
+  box.textContent = "";
+  if (!q) {
+    box.innerHTML = '<p class="note">Type a word to start searching.</p>';
+  } else if (!hits.length) {
+    box.innerHTML = '<p class="note">No matches yet. Try lowering the minimum match.</p>';
+  } else {
+    const grid = document.createElement("div");
+    grid.className = "chips";
+    hits.forEach(h => {
+      const b = document.createElement("button");
+      b.className = "chip";
+      b.setAttribute("aria-pressed", h.w === selected);
+      const w = document.createElement("span");
+      w.className = "w";
+      w.textContent = h.w;
+      const p = document.createElement("span");
+      p.className = "pct";
+      p.textContent = Math.round(h.s * 100) + "% match";
+      b.append(w, p);
+      b.onclick = () => { selected = h.w; run(); };
+      grid.append(b);
+    });
+    box.append(grid);
+    const hidden = scored.length - hits.length;
+    const n = document.createElement("p");
+    n.className = "note";
+    n.textContent = hidden + " other word" + (hidden === 1 ? "" : "s") + " didn’t make the cut. Tap a card to see its working.";
+    box.append(n);
+  }
+  drawTable(q);
+}
+
+function drawTable(q) {
+  const tbl = $("tbl");
+  tbl.textContent = "";
+  if (!selected) {
+    $("sub").textContent = "Pick a match above and its working shows up here.";
+    return;
+  }
+  const a = q, b = selected;
+  const t = buildTable(a, b);
+  const path = backtrace(t, a, b);
+  const d = t[a.length][b.length];
+  $("sub").textContent = "“" + a + "” → “" + b + "” takes " + d + " edit" + (d === 1 ? "" : "s") + ".";
+
+  const head = tbl.insertRow();
+  head.append(document.createElement("th"));
+  const blank = document.createElement("th");
+  blank.textContent = "∅";
+  head.append(blank);
+  for (const ch of b) {
+    const th = document.createElement("th");
+    th.textContent = ch;
+    head.append(th);
+  }
+  t.forEach((row, i) => {
+    const tr = tbl.insertRow();
+    const th = document.createElement("th");
+    th.textContent = i === 0 ? "∅" : a[i - 1];
+    tr.append(th);
+    row.forEach((v, j) => {
+      const td = tr.insertCell();
+      td.textContent = v;
+      if (path.has(i + "," + j)) td.className = "path";
+      if (i === a.length && j === b.length) td.className = "end";
+    });
+  });
+}
+
+["q", "t", "words"].forEach(id => $(id).addEventListener("input", run));
+run();
+</script>
+</body>
+</html>
